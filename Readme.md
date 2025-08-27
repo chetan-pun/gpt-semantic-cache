@@ -3,7 +3,7 @@
 
 This repository is the official implementation of [GPT Semantic Cache: Reducing LLM Costs and Latency via Semantic Embedding Caching](https://arxiv.org/pdf/2411.05276). 
 
-The GPT Semantic Cache is a Node.js package that provides a semantic caching mechanism for GPT responses. By leveraging semantic embeddings and approximate nearest neighbors search, the package efficiently caches and retrieves GPT responses based on the semantic similarity of user queries. This reduces redundant API calls to GPT models, saving time and costs, and improving response times for end-users. Queries with similar meaning are retrieved from cache saving the cost associated with an API.
+
 ## Installation
 
 ```bash
