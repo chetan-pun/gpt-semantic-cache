@@ -46,7 +46,7 @@ const { SemanticGPTCache } = require('gpt-semantic-cache');
 
 ### Initialization
 
-To initialize the SemanticGPTCache, you need to provide configuration options for embeddings, GPT model, and caching.
+To initialize the GPT semantic cache, you need to provide configuration options for embeddings, GPT model, and caching.
 
 ```javascript
 const cache = new SemanticGPTCache({
