@@ -1,43 +1,8 @@
-# GPT Semantic Cache
 
-An NPM package for semantic caching of GPT responses using Redis and Approximate Nearest Neighbors (ANN) search.
+# GPT Semantic Cache: Reducing LLM Costs and Latency via Semantic Embedding Caching
 
-## Table of Contents
+This repository is the official implementation of [GPT Semantic Cache: Reducing LLM Costs and Latency via Semantic Embedding Caching](https://arxiv.org/pdf/2411.05276). 
 
-- [Introduction](#introduction)
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Usage](#usage)
-  - [Initialization](#initialization)
-  - [Querying](#querying)
-  - [Configuration Options](#configuration-options)
-- [Science Behind the Package](#science-behind-the-package)
-  - [Semantic Embeddings](#semantic-embeddings)
-  - [Approximate Nearest Neighbors Search](#approximate-nearest-neighbors-search)
-  - [Cosine Similarity](#cosine-similarity)
-  - [Caching Mechanism](#caching-mechanism)
-- [Examples](#examples)
-- [License](#license)
-
-## Introduction
-
-The GPT Semantic Cache is a Node.js package that provides a semantic caching mechanism for GPT responses. By leveraging semantic embeddings and approximate nearest neighbors search, the package efficiently caches and retrieves GPT responses based on the semantic similarity of user queries. This reduces redundant API calls to GPT models, saving time and costs, and improving response times for end-users. Queries with similar meaning are retrieved from cache saving the cost associated with an API.
-
-
-Here are several areas where this can be used:
-
-- **Technical Customer Support**: Technical Support are specific and based of technical docunents so semantic caching can be used to address similar queries
-- **Product Support**: Responses to the online shopping products where the specifications or queries to the product is largely static
--**Other support based services**
-
-## Features
-
-- **Semantic Caching**: Efficiently cache GPT responses based on semantic similarity.
-- **Supports Multiple Embedding Sources**: Use OpenAI or local models for generating embeddings.
-- **Redis Integration**: Utilize Redis for fast storage and retrieval of cached data.
-- **Approximate Nearest Neighbors (ANN) Search**: Quickly find similar queries using ANN algorithms.
-- **Customizable Settings**: Adjust similarity thresholds, cache TTL, and more according to your needs.
 
 ## Installation
 
@@ -136,84 +101,75 @@ console.log(response);
 - If a similar query exists in the cache (based on the similarity threshold), the cached response is returned.
 - If no similar query is found, the GPT API is called, and the response is cached for future queries.
 
-### Configuration Options
 
-The package allows you to customize various settings to fit your needs:
+## Evaluation
 
-- **Similarity Threshold**: Adjust the `similarityThreshold` in `cacheOptions` to control how similar a query needs to be to hit the cache. A higher threshold means only very similar queries will hit the cache.
-
-- **Cache Time-To-Live (TTL)**: Set `cacheTTL` to control how long entries remain in the cache.
-
-- **Embedding Size**: Ensure `embeddingSize` matches the size of embeddings produced by your chosen embedding model.
-
-## Science Behind the Package
-
-### Semantic Embeddings
-
-Semantic embeddings are vector representations of text that capture the meaning and context of the text. By converting both user queries and cached queries into embeddings, we can compare them in a high-dimensional space to find semantic similarities.
-
-### Approximate Nearest Neighbors Search
-
-To efficiently find similar embeddings in the cache, the package uses the Hierarchical Navigable Small World (HNSW) algorithm for Approximate Nearest Neighbors search. HNSW constructs a graph of embeddings that allows for fast retrieval of nearest neighbors without comparing the query against every cached embedding.
-
-### Cosine Similarity
-
-Cosine similarity measures the cosine of the angle between two vectors in a multidimensional space. It is a commonly used metric to determine how similar two embeddings are. In this package, after retrieving the nearest neighbors using ANN search, cosine similarity is computed to ensure the retrieved embeddings meet the specified similarity threshold.
-
-### Caching Mechanism
-
-The caching mechanism works as follows:
-
-1. **Embedding Generation**: When a query is received, it's converted into an embedding using the specified embedding model.
-
-2. **ANN Search**: The embedding is used to search the ANN index for similar embeddings.
-
-3. **Similarity Check**: Retrieved embeddings are compared using cosine similarity to ensure they meet the similarity threshold.
-
-4. **Cache Hit or Miss**:
-   - **Cache Hit**: If a similar embedding is found, the associated response is retrieved from Redis and returned.
-   - **Cache Miss**: If no similar embedding is found, the query is sent to the GPT API. The response is then cached along with the embedding for future queries.
-
-## Examples
-
-### Using a Local Embedding Model
-
+To evaluate our approach, use:
 ```javascript
-const cache = new SemanticGPTCache({
-  embeddingOptions: {
-    type: 'local',
-    modelName: 'sentence-transformers/all-MiniLM-L6-v2',
-  },
-  gptOptions: {
-    openAIApiKey: 'YOUR_OPENAI_API_KEY',
-    model: 'gpt-3.5-turbo',
-  },
-  cacheOptions: {
-    redisUrl: 'redis://localhost:6379',
-    similarityThreshold: 0.75,
-    cacheTTL: 7200, // 2 hours
-    embeddingSize: 384, // For MiniLM model
-  },
-});
+import { SemanticGPTCache } from './index';
+import data from './test_dataset/customer_qa.json' with {type: "json"};
+import prev from './test_dataset/similar_customer.json' with {type: "json"};
 
-await cache.initialize();
-
-const response = await cache.query('Tell me a joke.');
-console.log(response);
+async function main() {
+  const cache = new SemanticGPTCache({
+    embeddingOptions: {
+      type: 'local',
+      modelName: 'Xenova/all-MiniLM-L6-v2',
+      openAIApiKey: process.env.OPENAI_API_KEY || '',
+    },
+    gptOptions: {
+      openAIApiKey: process.env.OPENAI_API_KEY || '',
+      model: 'gpt-4o-mini-2024-07-18',
+      promptPrefix: 'You are a helpful assistant and a technical support assistant for a 3D printer, you will limit your result to 5 sentences',
+    },
+    cacheOptions: {
+      redisUrl: process.env.REDIS_URL,
+      similarityThreshold: 0.8, 
+      cacheTTL: 86400,
+    },
+  });
+  await cache.initialize();
+  await cache.clearCache();
+  for (const item of prev.questions) {
+    const response = await cache.query(item.question,context)
+  }
+  console.log("Api hit : " + cache.getApiHit())
+  console.log("Cache hit : "+cache.getCacheHit())
+  console.log("Positive Hit : " + cache.getPositiveHit())
+  console.log("Negative hit :" + cache.getNegativeHit())
+  // Optionally clear the cache at the end
+   await cache.clearCache();
+}
+main(); 
 ```
 
-### Adjusting Similarity Threshold
+The code and the dataset we have used is available in [Evalute gpt-semantic-cache](https://anonymous.4open.science/r/gpt-semantic-cache-test-56CE/test.ts). 
 
-You can adjust the `similarityThreshold` to control cache sensitivity:
 
-```javascript
-// Higher threshold - only very similar queries will hit the cache
-cache.cacheOptions.similarityThreshold = 0.9;
+To verify the appropriateness of cached responses, we employed GPT-4o Mini to evaluate whether the retrieved cached response was valid for the test query. For each cache hit, both the test query and the original cached question were provided to the model, which returned a binary verdict indicating whether the queries were semantically similar
+and whether the cached response was accurate. This validation step enabled us to quantify the accuracy of the caching mechanism. Additionally, the response times for queries were measured and averaged for both the caching system and the traditional method (without cache). This allowed us to determine the performance improvement in terms of query response time.
 
-// Lower threshold - more queries will hit the cache, but responses may be less relevant
-cache.cacheOptions.similarityThreshold = 0.6;
-```
 
-## License
+## Results
+
+### Cache Hit per 500 queries in each category and the number of positive hits
+
+| Category                               | Cache Hit | Positive Hits |
+|----------------------------------------|-----------|---------------|
+| Basics of Python Programming           | 335       | 310           |
+| Technical Support Related to Network   | 335       | 326           |
+| Questions Related to Order and Shipping| 344       | 331           |
+| Customer Shopping QA                   | 308       | 298           |
+
+
+**GPT Semantic Cache demonstrate a significant reduction in API calls and improvement in response times across all evaluated query categories. The cache hit rates of up to 68.8% and positive hit rates of the cache hit rates exceeding 97% highlight the system’s effectiveness in identifying and leveraging semantic similarity for query handling. However, it is essential to contextualize these outcomes within both their strengths and potential limitations.**
+
+
+## Contributing
+We welcome issues and pull requests!
+
+- Fork and create a feature branch  
+- Add tests where applicable  
+- Open a PR describing your change and rationale  
 
 This project is licensed under the MIT License.
