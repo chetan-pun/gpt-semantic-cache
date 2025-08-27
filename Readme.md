@@ -104,7 +104,7 @@ console.log(response);
 
 ## Evaluation
 
-To evaluate our approach, use:
+To evaluate use:
 ```javascript
 import { SemanticGPTCache } from './index';
 import data from './test_dataset/customer_qa.json' with {type: "json"};
